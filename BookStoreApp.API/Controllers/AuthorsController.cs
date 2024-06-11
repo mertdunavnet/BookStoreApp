@@ -30,14 +30,13 @@ namespace BookStoreApp.API.Controllers
 
         // GET: api/Authors
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ResultAuthorDto>>> GetAuthors()
+        public async Task<ActionResult<List<ResultAuthorDto>>> GetAuthors()
         {
-            throw new Exception("Test");
             try
             {
                 var authors = await _context.Authors.ToListAsync();
-                var authorsDtos = _mapper.Map<IEnumerable<ResultAuthorDto>>(authors);
-                return Ok(authors);
+                var response = _mapper.Map<List<ResultAuthorDto>>(authors);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -60,8 +59,8 @@ namespace BookStoreApp.API.Controllers
                     return NotFound();
                 }
 
-                var authorDto = _mapper.Map<ResultAuthorDto>(author);
-                return Ok(author);
+                var response = _mapper.Map<ResultAuthorDto>(author);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -73,9 +72,9 @@ namespace BookStoreApp.API.Controllers
         // PUT: api/Authors/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAuthor(int id, UpdateAuthorDto authorDto)
+        public async Task<IActionResult> PutAuthor(int id, UpdateAuthorDto request)
         {
-            if (id != authorDto.Id)
+            if (id != request.Id)
             {
                 logger.LogWarning($"Update ID invalid in {nameof(PutAuthor)} - ID: {id}");
                 return BadRequest();
@@ -89,7 +88,7 @@ namespace BookStoreApp.API.Controllers
                 return BadRequest();
             }
 
-            await _mapper.Map(authorDto, author);
+            await _mapper.Map(request, author);
             _context.Entry(author).State = EntityState.Modified;
 
             try
@@ -108,13 +107,13 @@ namespace BookStoreApp.API.Controllers
                 }
             }
 
-            return Ok(author);
+            return Ok(request);
         }
 
         // POST: api/Authors
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<CreateAuthorDto>> PostAuthor(CreateAuthorDto authorDto)
+        public async Task<ActionResult<CreateAuthorDto>> PostAuthor(CreateAuthorDto request)
         {
             //var author = new Author
             //{
@@ -125,11 +124,11 @@ namespace BookStoreApp.API.Controllers
 
             try
             {
-                var author = _mapper.Map<Author>(authorDto);
+                var author = _mapper.Map<Author>(request);
                 await _context.Authors.AddAsync(author);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
+                return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, request);
             }
             catch (Exception ex)
             {

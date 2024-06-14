@@ -1,0 +1,98 @@
+﻿@page "/authors/"
+@inject IAuthorService authorService
+@inject NavigationManager navManager
+@inject IJSRuntime js
+
+<h3 class="text-center">Authors List</h3>
+<hr />
+
+@if (response.Success == false)
+{
+    <br />
+    <div class="alert alert-danger">
+        <h4>@response.Message</h4>
+    </div>
+}
+else
+{
+    @if (Authors == null)
+    {
+        <div class="alert alert-info">
+            <h4>Loading Data...</h4>
+        </div>
+    }
+    else
+    {
+        <br />
+        <table class="table table-responsive">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var author in Authors)
+                {
+                    <tr>
+                        <td>@author.FirstName</td>
+                        <td>@author.LastName</td>
+                        <td>
+                            <a class="btn btn-outline-primary" href="/authors/details/@author.Id"><span class="oi oi-book" aria-hidden="true"></span> Details</a>
+                            <AuthorizeView Roles="Administrator">
+                                <a class="btn btn-outline-warning" href="/authors/update/@author.Id"><span class="oi oi-pencil" aria-hidden="true"></span> Edit</a>
+                                <button class="btn btn-outline-danger" @onclick=@(() => Delete(author.Id))><span class="oi oi-delete" aria-hidden="true"></span> Delete</button>
+                            </AuthorizeView>  
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <AuthorizeView Roles="Administrator">
+            <a class="btn btn-outline-dark" href="/authors/create"><span class="oi oi-plus" aria-hidden="true"></span> Create</a>
+        </AuthorizeView>
+    }
+}
+
+@code {
+    private List<ResultAuthorDto> Authors;
+    private Response<List<ResultAuthorDto>> response = new Response<List<ResultAuthorDto>> { Success = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthors();
+    }
+
+    private async Task LoadAuthors()
+    {
+        response = await authorService.GetAuthors();
+        if (response.Success)
+        {
+            Authors = response.Data;
+        }
+    }
+
+    private async Task Delete(int authorId)
+    {
+        var author = Authors.FirstOrDefault(q => q.Id == authorId);
+        if (author != null)
+        {
+            var confirm = await js.InvokeAsync<bool>("confirm", $"Are You Sure You Want To Delete {author.FirstName} {author.LastName}?");
+            if (confirm)
+            {
+                var deleteResponse = await authorService.DeleteAuthor(authorId);
+
+                if (deleteResponse.Success)
+                {
+                    Authors.Remove(author);
+
+                    await LoadAuthors();
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+    }
+}
+
+       

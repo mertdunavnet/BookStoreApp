@@ -1,0 +1,100 @@
+﻿@page "/Books/"
+@inject IBookService bookService
+@inject NavigationManager navManager
+@inject IJSRuntime js
+
+<h3 class="text-center">Books List</h3>
+<hr />
+
+@if (response.Success == false)
+{
+    <br />
+    <div class="alert alert-danger">
+        <h4>@response.Message</h4>
+    </div>
+}
+else
+{
+    @if (Books == null)
+    {
+        <div class="alert alert-info">
+            <h4>Loading Data...</h4>
+        </div>
+    }
+    else
+    {
+        <br />
+        <table class="table table-responsive">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Author Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var book in Books)
+                {
+                    <tr>
+                        <td><img src="@book.Image" alt="@book.Title" style="height: 150px !important; width: 130px !important;" /></td>
+                        <td>@book.Title</td>
+                        <td>@book.Price.ToString("C")</td>
+                        <td><a class="btn btn-link" href="/authors/details/@book.AuthorId">@book.AuthorName</a></td>
+                        <td>
+                            <a class="btn btn-outline-primary" href="/Books/details/@book.Id"><span class="oi oi-book" aria-hidden="true"></span> Details</a>
+                            <AuthorizeView Roles="Administrator">
+                                <a class="btn btn-outline-warning" href="/Books/edit/@book.Id"><span class="oi oi-pencil" aria-hidden="true"></span> Edit</a>
+                                <button class="btn btn-outline-danger" @onclick=@(() => Delete(book.Id))><span class="oi oi-delete" aria-hidden="true"></span> Delete</button>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <AuthorizeView Roles="Administrator">
+            <a class="btn btn-outline-dark" href="/books/create"><span class="oi oi-plus" aria-hidden="true"></span> Create</a>
+        </AuthorizeView>
+    }
+}
+
+@code {
+    private List<ResultBookDto> Books;
+    private Response<List<ResultBookDto>> response = new Response<List<ResultBookDto>> { Success = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        response = await bookService.GetBooks();
+        if (response.Success)
+        {
+            Books = response.Data;
+        }
+    }
+
+    private async Task Delete(int bookId)
+    {
+        var book = Books.FirstOrDefault(q => q.Id == bookId);
+        if (book != null)
+        {
+            var confirm = await js.InvokeAsync<bool>("confirm", $"Are You Sure You Want To Delete {book.Title}?");
+            if (confirm)
+            {
+                var deleteResponse = await bookService.DeleteBook(bookId);
+
+                if (deleteResponse.Success)
+                {
+                    Books.Remove(book);
+
+                    await LoadBooks();
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+    }
+}
